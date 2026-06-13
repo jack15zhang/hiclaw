@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "hiclaw",
+    "slug": "hiclaw",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.hiclaw.mobile"
+    },
+    "android": {
+      "package": "app.hiclaw.mobile"
+    }
+  }
+}

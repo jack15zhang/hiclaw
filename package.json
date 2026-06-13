@@ -1,0 +1,23 @@
+{
+  "name": "hiclaw",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "mobile",
+    "server"
+  ],
+  "scripts": {
+    "dev:mobile": "npm --workspace mobile run start",
+    "dev:server": "npm --workspace server run start:dev",
+    "lint": "npm --workspace mobile run lint && npm --workspace server run lint",
+    "typecheck": "npm --workspace mobile run typecheck && npm --workspace server run typecheck"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.17.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
