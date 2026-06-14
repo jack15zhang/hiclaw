@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { carpoolPosts, marketplaceItems } from '../data/demoData';
-import { CarpoolPost, MarketplaceItem } from '../types/domain';
+import { CarpoolPost, CarpoolType, MarketplaceItem } from '../types/domain';
 
 type ServerCarpoolPost = {
   id: string;
@@ -32,6 +32,25 @@ type AgentResponse = {
 };
 
 type LoginProvider = 'phone' | 'google' | 'facebook';
+
+export type CreateCarpoolPostInput = {
+  type: CarpoolType;
+  fromArea: string;
+  toArea: string;
+  departureTime: string;
+  seats: number;
+  price: string;
+};
+
+export type CreateMarketplaceItemInput = {
+  title: string;
+  description: string;
+  category: string;
+  price: string;
+  condition: string;
+  area: string;
+  imageUrls: string[];
+};
 
 type QuickLoginResponse = {
   accessToken: string;
@@ -122,6 +141,52 @@ export async function fetchMarketplaceItems(): Promise<MarketplaceItem[]> {
     return items.map(toMarketplaceItem);
   } catch {
     return marketplaceItems;
+  }
+}
+
+export async function createCarpoolPost(input: CreateCarpoolPostInput): Promise<CarpoolPost> {
+  try {
+    const post = await requestJson<ServerCarpoolPost>('/carpool', {
+      body: JSON.stringify(input),
+      method: 'POST',
+    });
+
+    return toCarpoolPost(post);
+  } catch {
+    return {
+      id: `local-carpool-${Date.now()}`,
+      type: input.type,
+      fromArea: input.fromArea,
+      toArea: input.toArea,
+      time: formatCarpoolTime(input.departureTime),
+      seats: input.seats,
+      price: input.price,
+      distanceBand: 'nearby area',
+      trustLevel: 1,
+    };
+  }
+}
+
+export async function createMarketplaceItem(input: CreateMarketplaceItemInput): Promise<MarketplaceItem> {
+  try {
+    const item = await requestJson<ServerMarketplaceItem>('/marketplace', {
+      body: JSON.stringify(input),
+      method: 'POST',
+    });
+
+    return toMarketplaceItem(item);
+  } catch {
+    return {
+      id: `local-market-${Date.now()}`,
+      title: input.title,
+      price: input.price,
+      condition: input.condition,
+      area: input.area,
+      distanceBand: 'nearby area',
+      imageUrl:
+        input.imageUrls[0] ??
+        'https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&w=900&q=80',
+    };
   }
 }
 

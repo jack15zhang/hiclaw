@@ -5,9 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActionButton } from '../components/ActionButton';
 import { CarpoolCard } from '../components/CarpoolCard';
 import { MarketplaceCard } from '../components/MarketplaceCard';
+import { PostSheet } from '../components/PostSheet';
 import { QuickLoginModal } from '../components/QuickLoginModal';
 import { initialMessages } from '../data/demoData';
-import { fetchCarpoolPosts, fetchMarketplaceItems, quickLogin, sendAgentMessage } from '../services/api';
+import {
+  CreateCarpoolPostInput,
+  CreateMarketplaceItemInput,
+  createCarpoolPost,
+  createMarketplaceItem,
+  fetchCarpoolPosts,
+  fetchMarketplaceItems,
+  quickLogin,
+  sendAgentMessage,
+} from '../services/api';
 import { CarpoolPost, ChatMessage, MarketplaceItem } from '../types/domain';
 
 type Mode = 'carpool' | 'market';
@@ -29,6 +39,9 @@ export function HomeScreen() {
   const [loginAction, setLoginAction] = useState('');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isPostOpen, setIsPostOpen] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [shouldOpenPostAfterLogin, setShouldOpenPostAfterLogin] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
@@ -75,17 +88,65 @@ export function HomeScreen() {
     setIsLoginOpen(true);
   }
 
+  function openPostFlow() {
+    if (user) {
+      setIsPostOpen(true);
+      return;
+    }
+
+    setShouldOpenPostAfterLogin(true);
+    setLoginAction('Posting');
+    setIsLoginOpen(true);
+  }
+
   async function handleQuickLogin(provider: LoginProvider) {
     setIsLoggingIn(true);
     const session = await quickLogin(provider);
     setUser(session.user);
     setIsLoggingIn(false);
     setIsLoginOpen(false);
+    setShouldOpenPostAfterLogin(false);
+
+    if (shouldOpenPostAfterLogin) {
+      setIsPostOpen(true);
+    }
 
     const assistantMessage: ChatMessage = {
       id: `login-${Date.now()}`,
       role: 'assistant',
       text: `You are signed in as ${session.user.displayName}. Trust level L${session.user.trustLevel} is now active.`,
+    };
+    setMessages((current) => [...current, assistantMessage]);
+  }
+
+  async function submitCarpoolPost(input: CreateCarpoolPostInput) {
+    setIsPosting(true);
+    const post = await createCarpoolPost(input);
+    setCarpoolFeed((current) => [post, ...current]);
+    setMode('carpool');
+    setIsPosting(false);
+    setIsPostOpen(false);
+
+    const assistantMessage: ChatMessage = {
+      id: `post-carpool-${Date.now()}`,
+      role: 'assistant',
+      text: `Your ${post.type === 'offer' ? 'ride offer' : 'ride request'} from ${post.fromArea} to ${post.toArea} is live. Exact pickup details stay hidden until confirmation.`,
+    };
+    setMessages((current) => [...current, assistantMessage]);
+  }
+
+  async function submitMarketplaceItem(input: CreateMarketplaceItemInput) {
+    setIsPosting(true);
+    const item = await createMarketplaceItem(input);
+    setMarketFeed((current) => [item, ...current]);
+    setMode('market');
+    setIsPosting(false);
+    setIsPostOpen(false);
+
+    const assistantMessage: ChatMessage = {
+      id: `post-market-${Date.now()}`,
+      role: 'assistant',
+      text: `${item.title} is now listed in the second-hand market. Buyers can browse it before login and must sign in before contacting you.`,
     };
     setMessages((current) => [...current, assistantMessage]);
   }
@@ -163,7 +224,7 @@ export function HomeScreen() {
 
           <View style={styles.actions}>
             <ActionButton icon="car-sport" label="Find ride" onPress={() => setMode('carpool')} />
-            <ActionButton icon="add-circle" label="Post" onPress={() => requireLogin('Posting')} />
+            <ActionButton icon="add-circle" label="Post" onPress={openPostFlow} />
             <ActionButton icon="bag-handle" label="Market" onPress={() => setMode('market')} />
           </View>
 
@@ -203,6 +264,14 @@ export function HomeScreen() {
           isWorking={isLoggingIn}
           onClose={() => setIsLoginOpen(false)}
           onLogin={handleQuickLogin}
+        />
+        <PostSheet
+          defaultMode={mode === 'carpool' ? 'carpool' : 'market'}
+          isSubmitting={isPosting}
+          isVisible={isPostOpen}
+          onClose={() => setIsPostOpen(false)}
+          onSubmitCarpool={submitCarpoolPost}
+          onSubmitMarketplace={submitMarketplaceItem}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
